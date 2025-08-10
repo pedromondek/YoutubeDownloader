@@ -1,3 +1,4 @@
+import time
 from pytube import *
 from pytubefix import YouTube, Playlist
 from pytubefix.cli import on_progress
@@ -13,11 +14,14 @@ def downloadYoutube():
         downloadPlaylist(inputTypeDownload)
     else:
         folderPath = os.path.join("downloads", "standalone")
-        downloadSingle(inputTypeDownload, folderPath)
+        downloadStandalone(inputTypeDownload, folderPath)
        
-def downloadSingle(link, folderPath, downloadType=None):
+def downloadStandalone(link, folderPath, downloadType=None):
     try:
         yt = YouTube(link, use_po_token=True, on_progress_callback=on_progress)
+
+        attempt = 0
+        maxAttempts = 3
 
         if downloadType == None:
             print(f'{yt.title} - {yt.author}')
@@ -38,82 +42,123 @@ def downloadSingle(link, folderPath, downloadType=None):
             
         match downloadType:
             case "mp3" | "audio":
-                stream = yt.streams.get_audio_only()
-                print('🔄🎧 Iniciando download do áudio.')
-                stream.download(output_path=folderPath)
-                print('✅🎧 Download do áudio concluído.')
-
-                print(f"Operação concluída com sucesso! ✅")
-                return True
-            case "mp4":
-                stream = yt.streams.get_highest_resolution()
-                print('🔄🎥 Iniciando download do vídeo.')
-                stream.download(output_path=folderPath)
-                print('✅🎥 Download do vídeo concluído.')
-
-                print(f"Operação concluída com sucesso! ✅")
-                return True
-            case "video":
-                video_streams = yt.streams.filter(adaptive=True, only_video=True, file_extension='mp4').order_by("resolution").desc()
-                video_stream = video_streams[0]
-                print('🔄🎞️ Iniciando download do vídeo sem áudio.')
-                video_stream.download(output_path=folderPath , filename=yt.title)
-                print('✅🎞️ Download do vídeo sem áudio concluído.')
-
-                print(f"Operação concluída com sucesso! ✅")
-                return True
-            case "customizado" | "customizada" | "custom":
-                video_choice = int(input("\n📌 Escolha o número do vídeo desejado: "))
-                audio_choice = int(input("📌 Escolha o número do áudio desejado: "))
-
-                video_stream = video_streams[video_choice]
-                audio_stream = audio_streams[audio_choice]
-
-                print(f"\n📍 Selecionado:\n - 🎞️ Video: {video_stream.resolution}\n - 🎧 Áudio: {audio_stream.abr}")
-
-                print(f'\n🔄🎞️ Iniciando download do vídeo.')
-                video_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_video.mp4"
-                video_path = video_stream.download(output_path=folderPath, filename= yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + '_video')
-                print('✅🎞️ Download do vídeo concluído.')
-
-                print(f'\n🔄🎧 Iniciando download do áudio.')
-                audio_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_audio.m4a"
-                audio_path = audio_stream.download(output_path=folderPath, filename= yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + '_audio')
-                print('✅🎧 Download do áudio concluído.')
-
-                merge = input(f"\n♻️  Juntar os arquivos?\n⚠️  NOTA: Isso pode levar um tempo. (y / n)\n").strip().lower()
-                while merge not in ("y", "s", "n"):
-                    merge = input("❌ Opção inválida!\n♻️  Juntar os arquivos?\n⚠️  NOTA: Isso pode levar um tempo. (y / n)\n").strip().lower()
-                if merge in ("y", "s"):
-                    print(f"\n🔄♻️ Iniciando a junção de arquivos.")
-
-                    output_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_EDITADO.mp4"
-
+                while attempt < maxAttempts:
                     try:
-                        ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+                        attempt += 1
+                        stream = yt.streams.get_audio_only()
+                        print('🔄🎧 Iniciando download do áudio.')
+                        stream.download(output_path=folderPath)
+                        print('✅🎧 Download do áudio concluído.')
 
-                        subprocess.run([
-                            ffmpeg_path,
-                            "-i", video_filename,
-                            "-i", audio_filename,
-                            "-c:v", "copy",
-                            "-c:a", "aac",
-                            "-strict", "experimental",
-                            output_filename
-                        ], check=True)
-                    except subprocess.CalledProcessError as e:
-                        print(f"❌ Erro ao juntar com ffmpeg: {e}")
+                        print(f"Operação concluída com sucesso! ✅")
+                        return True
+                    except Exception as e:
+                        print(f'⚠️  Erro no download: {e}')
+                        if attempt < maxAttempts:
+                            print(f'🔄  Tentando novamente... ({attempt})"')
+                            time.sleep(3)
+                        else:
+                            print(f'❌ Todas as tentativas de download para esta faixa falharam.')
+                            return False
+            case "mp4":
+                while attempt < maxAttempts:
+                    try:
+                        stream = yt.streams.get_highest_resolution()
+                        print('🔄🎥 Iniciando download do vídeo.')
+                        stream.download(output_path=folderPath)
+                        print('✅🎥 Download do vídeo concluído.')
 
-                    print(f"\n✅🎥 Video e áudio juntados com sucesso.")
+                        print(f"Operação concluída com sucesso! ✅")
+                        return True
+                    except Exception as e:
+                        print(f'⚠️  Erro no download: {e}')
+                        if attempt < maxAttempts:
+                            print(f'🔄  Tentando novamente... ({attempt})"')
+                            time.sleep(3)
+                        else:
+                            print(f'❌ Todas as tentativas de download para esta faixa falharam.')
+                            return False
+            case "video":
+                while attempt < maxAttempts:
+                    try:
+                        video_streams = yt.streams.filter(adaptive=True, only_video=True, file_extension='mp4').order_by("resolution").desc()
+                        video_stream = video_streams[0]
+                        print('🔄🎞️ Iniciando download do vídeo sem áudio.')
+                        video_stream.download(output_path=folderPath , filename=yt.title)
+                        print('✅🎞️ Download do vídeo sem áudio concluído.')
 
-                    print(f"\n🔄🗑️  Apagando video e áudio temporários.")
-                    os.remove(video_filename)
-                    os.remove(audio_filename)
-                    print("✅🗑️  Vídeo e aúdio temporários apagados com sucesso!")
+                        print(f"Operação concluída com sucesso! ✅")
+                        return True
+                    except Exception as e:
+                        print(f'⚠️  Erro no download: {e}')
+                        if attempt < maxAttempts:
+                            print(f'🔄  Tentando novamente... ({attempt})"')
+                            time.sleep(3)
+                        else:
+                            print(f'❌ Todas as tentativas de download para esta faixa falharam.')
+                            return False
+            case "customizado" | "customizada" | "custom":
+                while attempt < maxAttempts:
+                    try:
+                        video_choice = int(input("\n📌 Escolha o número do vídeo desejado: "))
+                        audio_choice = int(input("📌 Escolha o número do áudio desejado: "))
+
+                        video_stream = video_streams[video_choice]
+                        audio_stream = audio_streams[audio_choice]
+
+                        print(f"\n📍 Selecionado:\n - 🎞️ Video: {video_stream.resolution}\n - 🎧 Áudio: {audio_stream.abr}")
+
+                        print(f'\n🔄🎞️ Iniciando download do vídeo.')
+                        video_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_video.mp4"
+                        video_path = video_stream.download(output_path=folderPath, filename= yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + '_video')
+                        print('✅🎞️ Download do vídeo concluído.')
+
+                        print(f'\n🔄🎧 Iniciando download do áudio.')
+                        audio_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_audio.m4a"
+                        audio_path = audio_stream.download(output_path=folderPath, filename= yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + '_audio')
+                        print('✅🎧 Download do áudio concluído.')
+
+                        merge = input(f"\n♻️  Juntar os arquivos?\n⚠️  NOTA: Isso pode levar um tempo. (y / n)\n").strip().lower()
+                        while merge not in ("y", "s", "n"):
+                            merge = input("❌ Opção inválida!\n♻️  Juntar os arquivos?\n⚠️  NOTA: Isso pode levar um tempo. (y / n)\n").strip().lower()
+                        if merge in ("y", "s"):
+                            print(f"\n🔄♻️ Iniciando a junção de arquivos.")
+
+                            output_filename = yt.title.replace(" ", "_").replace("/", "_").replace(":", "_") + "_EDITADO.mp4"
+
+                            try:
+                                ffmpeg_path = ffmpeg.get_ffmpeg_exe()
+
+                                subprocess.run([
+                                    ffmpeg_path,
+                                    "-i", video_filename,
+                                    "-i", audio_filename,
+                                    "-c:v", "copy",
+                                    "-c:a", "aac",
+                                    "-strict", "experimental",
+                                    output_filename
+                                ], check=True)
+                            except subprocess.CalledProcessError as e:
+                                print(f"❌ Erro ao juntar com ffmpeg: {e}")
+
+                            print(f"\n✅🎥 Video e áudio juntados com sucesso.")
+
+                            print(f"\n🔄🗑️  Apagando video e áudio temporários.")
+                            os.remove(video_filename)
+                            os.remove(audio_filename)
+                            print("✅🗑️  Vídeo e aúdio temporários apagados com sucesso!")
 
 
-                print(f"Operação concluída com sucesso! ✅")
-                return True
+                        print(f"Operação concluída com sucesso! ✅")
+                        return True
+                    except Exception as e:
+                        print(f'⚠️  Erro no download: {e}')
+                        if attempt < maxAttempts:
+                            print(f'🔄  Tentando novamente... ({attempt})"')
+                            time.sleep(3)
+                        else:
+                            print(f'❌ Todas as tentativas de download para esta faixa falharam.')
+                            return False
             # case "best" | "melhor":
             #     print('teste')
             # return True
@@ -178,7 +223,7 @@ def downloadPlaylist(link):
                 print(f"\n#{index} - {video.title} - {video.author} [{successfulDownloads} / {totalVideos}] 🔄")
                 
                 try:
-                    resultDownload = downloadSingle(video.watch_url, playlistPath, downloadType)
+                    resultDownload = downloadStandalone(video.watch_url, playlistPath, downloadType)
                     if resultDownload:
                         successfulDownloads += 1
                         print(f"#{index} - {video.title} - {video.author} [{successfulDownloads} / {totalVideos}] ✅")
