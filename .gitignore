@@ -7,11 +7,11 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+node_modules
 .Python
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
 lib/
@@ -205,3 +205,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# # Download Folders
+downloads/playlists/*
+downloads/standalone/*
+
+# # Exceto o arquivo .gitkeep
+!downloads/playlists/.gitkeep
+!downloads/standalone/.gitkeep
