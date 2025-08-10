@@ -94,7 +94,9 @@ To:
 
 ## Preview 🎞️
 
-<video src="" controls></video>
+
+https://github.com/user-attachments/assets/d76603c5-f833-424d-8f5e-be943ac15baa
+
 
 <br>
 
